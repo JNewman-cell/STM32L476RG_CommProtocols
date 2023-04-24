@@ -16,6 +16,7 @@ extern void Error_Handler(void);
 //                        I2C GPIO Initialization
 //===============================================================================
 void I2C_GPIO_Init(void) {
+	// [TODO]
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
 	
 	GPIOB->MODER &= ~GPIO_MODER_MODE6;
@@ -52,6 +53,7 @@ void I2C_GPIO_Init(void) {
 void I2C_Initialization(void){
 	uint32_t OwnAddr = 0x52;
 	
+	// [TODO]
 	RCC->APB1ENR1 |= RCC_APB1ENR1_I2C1EN;
 	
 	// System clock as clock source
@@ -130,8 +132,14 @@ void I2C_Initialization(void){
 // Direction = 1: Master requests a read transfer
 //=============================================================================== 
 int8_t I2C_Start(I2C_TypeDef * I2Cx, uint32_t DevAddress, uint8_t Size, uint8_t Direction) {	
+	
+	// Direction = 0: Master requests a write transfer
+	// Direction = 1: Master requests a read transfer
+	
 	uint32_t tmpreg = 0;
 	
+	// This bit is set by software, and cleared by hardware after the Start followed by the address
+	// sequence is sent, by an arbitration loss, by a timeout error detection, or when PE = 0.
 	tmpreg = I2Cx->CR2;
 	
 	tmpreg &= (uint32_t)~((uint32_t)(I2C_CR2_SADD | I2C_CR2_NBYTES | I2C_CR2_RELOAD | I2C_CR2_AUTOEND | I2C_CR2_RD_WRN | I2C_CR2_START | I2C_CR2_STOP));
@@ -186,6 +194,14 @@ int8_t I2C_SendData(I2C_TypeDef * I2Cx, uint8_t DeviceAddress, uint8_t *pData, u
 	// I2Cx->TXDR = pData[0] & I2C_TXDR_TXDATA;  
 
 	for (i = 0; i < Size; i++) {
+		// TXE is set by hardware when the I2C_TXDR register is empty. It is cleared when the next
+		// data to be sent is written in the I2C_TXDR register.
+		// while( (I2Cx->ISR & I2C_ISR_TXE) == 0 ); 
+
+		// TXIS bit is set by hardware when the I2C_TXDR register is empty and the data to be
+		// transmitted must be written in the I2C_TXDR register. It is cleared when the next data to be
+		// sent is written in the I2C_TXDR register.
+		// The TXIS flag is not set when a NACK is received.
 		while((I2Cx->ISR & I2C_ISR_TXIS) == 0 );
 		I2Cx->TXDR = pData[i] & I2C_TXDR_TXDATA;  // TXE is cleared by writing to the TXDR register.
 	}
